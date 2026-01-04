@@ -72,29 +72,41 @@ func main() {
 	}
 }
 
-func handleResponse(response *http.Response) {
-	byteResponse, _ := io.ReadAll(response.Body)
+func handleResponse(response *http.Response) (string, error) {
+	byteResponse, err := io.ReadAll(response.Body)
+
+	if err != nil {
+		return "", err
+	}
 
 	switch response.StatusCode {
 	case http.StatusOK:
 		weather := WeatherSuccessResponse{}
-		json.Unmarshal(byteResponse, &weather)
-		// fmt.Printf("API Response: %+v", weather)
-		fmt.Printf("The current weather now in %v, %v is %v. The temperature is %.2f°C and the humidity is %v\n",
+		if err := json.Unmarshal(byteResponse, &weather); err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("The current weather now in %v, %v is %v. The temperature is %.2f°C and the humidity is %v\n",
 			weather.Name,
 			weather.Sys.Country,
 			weather.Weather[0].Description,
 			weather.Main.Temp-273.15,
 			weather.Main.Humidity,
-		)
+		), nil
+
+		// fmt.Printf("API Response: %+v", weather)
 	case http.StatusNotFound:
 		nfWeather := WeatherNotFoundResponse{}
-		json.Unmarshal(byteResponse, &nfWeather)
-		fmt.Println(strings.Title(nfWeather.Message))
-		// fmt.Printf("%v", string(byteResponse))
+		if err := json.Unmarshal(byteResponse, &nfWeather); err != nil {
+			return "", err
+		}
+
+		return "", fmt.Errorf("City not found: %v", strings.Title(nfWeather.Message))
+		// fmt.Printf("%v", string(byteResponse)
 	default:
-		fmt.Printf("Unexpected error occur: %v", response.StatusCode)
+		return "", fmt.Errorf("Unexpected error occur: %v", response.StatusCode)
 	}
+
 	//
 	// } else if response.StatusCode == http.StatusNotFound {
 	// 	fmt.Println(response)
