@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -56,7 +55,13 @@ func main() {
 		if err != nil {
 			log.Fatal("Error on request for openweather api:", err)
 		} else {
-			handleResponse(response)
+			resp, err := handleResponse(response)
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(resp)
+			}
+
 			response.Body.Close()
 		}
 
@@ -93,22 +98,14 @@ func handleResponse(response *http.Response) (string, error) {
 			weather.Main.Temp-273.15,
 			weather.Main.Humidity,
 		), nil
-
-		// fmt.Printf("API Response: %+v", weather)
 	case http.StatusNotFound:
 		nfWeather := WeatherNotFoundResponse{}
 		if err := json.Unmarshal(byteResponse, &nfWeather); err != nil {
 			return "", err
 		}
 
-		return "", fmt.Errorf("City not found: %v", strings.Title(nfWeather.Message))
-		// fmt.Printf("%v", string(byteResponse)
+		return "", fmt.Errorf("Not found: %v", nfWeather.Message)
 	default:
 		return "", fmt.Errorf("Unexpected error occur: %v", response.StatusCode)
 	}
-
-	//
-	// } else if response.StatusCode == http.StatusNotFound {
-	// 	fmt.Println(response)
-	// }
 }
